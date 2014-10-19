@@ -1,0 +1,3 @@
+[submodule "gol"]
+	path = gol
+	url = git://github.com/thearn/game-of-life.git
