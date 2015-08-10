@@ -85,29 +85,42 @@ def postTweet(twitter, number):
     twitter.update_status_with_media(status=to_tweet, media=gif)
     print "Posted tweet with GIF #" + to_tweet
 
-def waitToTweet():
-    # make sure the temp folder exists
-    if not os.path.exists('./tmp/'):
-        os.mkdir('./tmp/')
-    
+def timeToWait():
     # tweet every 12 hours
     now = datetime.datetime.now()
     wait = 60 - now.second
     wait += (59 - now.minute) * 60
     wait += (11 - (now.hour % 12)) * 60 * 60;
-    print "Wait " + str(wait) + " seconds for next tweet"
-    time.sleep(wait)
+    return wait
 
-twitter = connectTwitter()
-while True:
+if __name__ == "__main__":
+    # heroku scheduler runs every 10 minutes
+    wait = timeToWait()
+    print "Wait " + str(wait) + " seconds for next tweet"
+    if wait > 10 * 60:
+        sys.exit(0)
+
     try:
-        waitToTweet()
+        # make sure the temp folder exists
+        if not os.path.exists('./tmp/'):
+            os.mkdir('./tmp/')
+    
+        # run the simulation and make the GIF
         cleanupFiles()
+        twitter = connectTwitter()
         number = getTweetNumber(twitter)
         colour = getGifColour(number)
         simulateLife(colour)
         makeGIF()
+
+        # wait until the right time, then post
+        time.sleep(min(wait, timeToWait()))
         postTweet(twitter, number)
+        sys.exit(0) # success!
+    except SystemExit as e:
+        # working as intended, exit normally
+        sys.exit(e)
     except:
         print "Error:", sys.exc_info()[0]
-    time.sleep(10)
+        sys.exit(1)
+    
